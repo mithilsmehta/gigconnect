@@ -112,35 +112,42 @@ function RegisterCore() {
     }
   };
 
-  const googleSignup = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const gUser = result.user;
-      const res = await axios.post("http://localhost:5000/api/auth/google-login", {
-        email: gUser.email,
-        firstName: gUser.displayName?.split(" ")[0] || "",
-        lastName: gUser.displayName?.split(" ")[1] || "",
-      });
-      if (res.data.success) {
-        if (!res.data.isNew) {
-          localStorage.setItem("token", res.data.token);
-          toast.success("Welcome back!");
-          setTimeout(() => navigate("/home"), 800);
-          return;
-        }
+const googleSignup = async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    const gUser = result.user;
+
+    const res = await axios.post("http://localhost:5000/api/auth/google-login", {
+      email: gUser.email,
+      firstName: gUser.displayName?.split(" ")[0] || "",
+      lastName: gUser.displayName?.split(" ")[1] || "",
+    });
+
+    if (res.data.success) {
+      localStorage.setItem("token", res.data.token);
+
+      if (res.data.isNew) {
+        // 🆕 New Google user — go to Choose Role page
         setValue("firstName", gUser.displayName?.split(" ")[0] || "");
         setValue("lastName", gUser.displayName?.split(" ")[1] || "");
         setValue("email", gUser.email);
         setEmailVerified(true);
-        localStorage.setItem("token", res.data.token);
-        toast.success("Google connected! Continue setup.");
+        toast.success("Google connected! Please choose your role.");
         setStep(2);
+      } else {
+        // ✅ Existing user — go to Home
+        toast.success("Welcome back!");
+        setTimeout(() => navigate("/home"), 800);
       }
-    } catch {
-      toast.error("Google signup failed.");
+    } else {
+      toast.error(res.data.message || "Google login failed.");
     }
-  };
+  } catch (error) {
+    console.error("Google signup error:", error);
+    toast.error("Google signup failed.");
+  }
+};
 
   const sendOtp = async () => {
     try {

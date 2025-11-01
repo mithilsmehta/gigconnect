@@ -318,7 +318,7 @@ export const uploadResumeOnly = async (req, res) => {
   }
 };
 
-// ✅ GOOGLE LOGIN / REGISTER handler
+// ✅ GOOGLE LOGIN / REGISTER handler (updated)
 export const googleLogin = async (req, res) => {
   try {
     const { email, firstName, lastName } = req.body;
@@ -340,19 +340,22 @@ export const googleLogin = async (req, res) => {
           email: user.email,
           role: user.role,
         },
-        isNew: false,
+        isNew: !user.role, // if user exists but role is not set yet
       });
     }
 
-    // 🆕 New Google user → create partial account (no role yet)
+    // 🆕 New Google user → create partial account (no phone or role yet)
     user = new User({
       firstName: firstName || "Google",
       lastName: lastName || "User",
       email,
-      isVerified: true,
+      phone: null,
+      country: "",
       password: await bcrypt.hash(Date.now().toString(), 10),
-      role: null, // ❌ no default role
+      role: null, // ⚠️ leave blank intentionally
+      isVerified: true,
     });
+
     await user.save();
 
     const token = signToken(user._id);
