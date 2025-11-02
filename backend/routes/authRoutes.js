@@ -43,7 +43,11 @@ router.get("/me", requireAuth, me);
 router.post("/upload-resume", upload.single("resume"), uploadResumeOnly);
 
 // ✅ GOOGLE LOGIN
-router.post("/google-login", googleLogin);
+router.post("/check-user", async (req, res) => {
+  const { email } = req.body;
+  const u = await User.findOne({ email });
+  return res.json({ exists: !!u });
+});
 
 // ✅ UPDATE ROLE (for new Google users)
 router.patch("/update-role", requireAuth, async (req, res) => {

@@ -5,7 +5,7 @@ import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
 
 // temporary email → otp store
-let otpStore = {}; 
+let otpStore = {};
 
 // ✅ Country-specific phone limits
 const PHONE_LIMITS = {
@@ -44,10 +44,8 @@ export const verifyRecaptcha = async (token) => {
 export const sendEmailOtp = async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email)
-      return res.status(400).json({ message: "Email is required" });
+    if (!email) return res.status(400).json({ message: "Email is required" });
 
-    // 🛑 Check if account already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({
@@ -57,8 +55,6 @@ export const sendEmailOtp = async (req, res) => {
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000);
-
-    // store OTP and expiry for new registration only
     otpStore[email] = { otp, expiresAt: Date.now() + 5 * 60 * 1000 };
 
     const transporter = nodemailer.createTransport({
@@ -95,16 +91,12 @@ export const sendEmailOtp = async (req, res) => {
 export const verifyEmailOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    if (!email || !otp)
-      return res.status(400).json({ message: "Missing email or OTP" });
+    if (!email || !otp) return res.status(400).json({ message: "Missing email or OTP" });
 
     const record = otpStore[email];
     if (!record) return res.status(400).json({ message: "OTP not found or expired" });
-    if (Date.now() > record.expiresAt)
-      return res.status(400).json({ message: "OTP expired" });
-
-    if (parseInt(otp) !== record.otp)
-      return res.status(400).json({ message: "Invalid OTP" });
+    if (Date.now() > record.expiresAt) return res.status(400).json({ message: "OTP expired" });
+    if (parseInt(otp) !== record.otp) return res.status(400).json({ message: "Invalid OTP" });
 
     delete otpStore[email];
     res.json({ success: true, message: "Email verified successfully!" });
@@ -130,6 +122,9 @@ export const register = async (req, res) => {
       about,
       recaptchaToken,
       skipResume,
+
+      // NEW from freelancer step 4 (array of objects)
+      experiences = [],
     } = req.body;
 
     // ✅ reCAPTCHA validation
@@ -140,18 +135,9 @@ export const register = async (req, res) => {
 
     // ✅ Basic field validation
     if (!skipResume) {
-      if (
-        !firstName ||
-        !lastName ||
-        !email ||
-        !phone ||
-        !password ||
-        !confirmPassword ||
-        !role
-      ) {
+      if (!firstName || !lastName || !email || !password || !confirmPassword || !role) {
         return res.status(400).json({ message: "Please fill all required fields." });
       }
-
       if (password !== confirmPassword) {
         return res.status(400).json({ message: "Passwords do not match." });
       }
@@ -160,7 +146,7 @@ export const register = async (req, res) => {
     // ✅ Clean up phone digits properly
     let digits = "";
     if (phone) {
-      digits = phone.replace(/\D/g, "");
+      digits = String(phone).replace(/\D/g, "");
       if (country && PHONE_LIMITS[country] && digits.length !== PHONE_LIMITS[country]) {
         return res.status(400).json({
           message: `Phone number must be ${PHONE_LIMITS[country]} digits for ${country}.`,
@@ -171,19 +157,36 @@ export const register = async (req, res) => {
     // ✅ Duplicate checks
     if (email) {
       const existingEmail = await User.findOne({ email });
-      if (existingEmail) {
-        return res.status(400).json({ message: "Email already in use." });
-      }
+      if (existingEmail) return res.status(400).json({ message: "Email already in use." });
     }
-
     if (digits) {
       const existingPhone = await User.findOne({ phone: digits });
-      if (existingPhone) {
-        return res.status(400).json({ message: "Phone already in use." });
-      }
+      if (existingPhone) return res.status(400).json({ message: "Phone already in use." });
     }
 
-    // ✅ Create new user
+    // ✅ Normalize experiences (ensure endYear = "Present" when isCurrent === true)
+    const normalizedExperiences = Array.isArray(experiences)
+      ? experiences
+          .filter(
+            (e) =>
+              e &&
+              String(e.company || "").trim() &&
+              String(e.roleTitle || "").trim() &&
+              String(e.startYear || "").trim()
+          )
+          .map((e) => ({
+            company: String(e.company || "").trim(),
+            roleTitle: String(e.roleTitle || "").trim(),
+            startYear: String(e.startYear || "").trim(),
+            isCurrent: Boolean(e.isCurrent),
+            endYear: Boolean(e.isCurrent)
+              ? "Present"
+              : String(e.endYear || "").trim(), // allow blank if not current
+            workType: ["Remote", "Onsite", "Hybrid"].includes(e.workType) ? e.workType : "Remote",
+          }))
+      : [];
+
+    // ✅ Create user
     const user = new User({
       firstName,
       lastName,
@@ -192,10 +195,11 @@ export const register = async (req, res) => {
       phone: digits,
       password,
       role,
-      skills: typeof skills === "string" ? skills.split(",").map((s) => s.trim()) : [],
+      skills: typeof skills === "string" ? skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
       about,
       resumePath: req.file ? `/uploads/${req.file.filename}` : null,
       isVerified: true,
+      experiences: role === "freelancer" ? normalizedExperiences : [], // save only for freelancers
     });
 
     await user.save();
@@ -212,8 +216,7 @@ export const login = async (req, res) => {
     const { emailOrPhone, password, recaptchaToken } = req.body;
 
     const isHuman = await verifyRecaptcha(recaptchaToken);
-    if (!isHuman)
-      return res.status(400).json({ message: "reCAPTCHA failed. Try again." });
+    if (!isHuman) return res.status(400).json({ message: "reCAPTCHA failed. Try again." });
 
     if (!emailOrPhone || !password)
       return res.status(400).json({ message: "Please enter both fields." });
@@ -223,9 +226,8 @@ export const login = async (req, res) => {
     });
     if (!user) return res.status(404).json({ message: "User not found." });
 
-    // ✅ Verify password
+    // ✅ Verify password (with firebase fallback logic you added)
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
       const firebaseKey = process.env.FIREBASE_API_KEY;
       const firebaseRes = await fetch(
@@ -240,20 +242,15 @@ export const login = async (req, res) => {
           }),
         }
       );
-
       const firebaseData = await firebaseRes.json();
+      if (firebaseData.error) return res.status(400).json({ message: "Invalid credentials." });
 
-      if (firebaseData.error)
-        return res.status(400).json({ message: "Invalid credentials." });
-
-      // ✅ Firebase confirmed → update Mongo password hash
       const newHashed = await bcrypt.hash(password, 10);
       user.password = newHashed;
       await user.save();
     }
 
-    if (!user.isVerified)
-      return res.status(403).json({ message: "Email not verified yet." });
+    if (!user.isVerified) return res.status(403).json({ message: "Email not verified yet." });
 
     const token = signToken(user._id);
     res.status(200).json({
@@ -273,7 +270,7 @@ export const login = async (req, res) => {
   }
 };
 
-// ✅ RESET PASSWORD — Only new password works
+// ✅ RESET PASSWORD
 export const resetPassword = async (req, res) => {
   try {
     const { email, newPassword } = req.body;
@@ -309,8 +306,7 @@ export const me = async (req, res) => {
 // ✅ UPLOAD RESUME ONLY
 export const uploadResumeOnly = async (req, res) => {
   try {
-    if (!req.file)
-      return res.status(400).json({ message: "No file uploaded." });
+    if (!req.file) return res.status(400).json({ message: "No file uploaded." });
     res.json({ success: true, path: `/uploads/${req.file.filename}` });
   } catch (err) {
     console.error("Resume Upload Error:", err.message);
@@ -322,13 +318,11 @@ export const uploadResumeOnly = async (req, res) => {
 export const googleLogin = async (req, res) => {
   try {
     const { email, firstName, lastName } = req.body;
-
     if (!email) return res.status(400).json({ message: "Email is required" });
 
     let user = await User.findOne({ email });
 
     if (user) {
-      // Existing account → just login
       const token = signToken(user._id);
       return res.status(200).json({
         success: true,
@@ -340,11 +334,11 @@ export const googleLogin = async (req, res) => {
           email: user.email,
           role: user.role,
         },
-        isNew: !user.role, // if user exists but role is not set yet
+        isNew: !user.role,
       });
     }
 
-    // 🆕 New Google user → create partial account (no phone or role yet)
+    // New Google user
     user = new User({
       firstName: firstName || "Google",
       lastName: lastName || "User",
@@ -352,8 +346,9 @@ export const googleLogin = async (req, res) => {
       phone: null,
       country: "",
       password: await bcrypt.hash(Date.now().toString(), 10),
-      role: null, // ⚠️ leave blank intentionally
+      role: null,
       isVerified: true,
+      experiences: [],
     });
 
     await user.save();
