@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 export default function Proposals() {
+    const navigate = useNavigate();
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -147,8 +149,11 @@ export default function Proposals() {
                                             Applied {getTimeAgo(application.appliedAt)}
                                         </small>
                                         {application.status === 'accepted' && (
-                                            <button className="btn btn-outline-success btn-sm">
-                                                Start Project
+                                            <button
+                                                className="btn btn-success btn-sm"
+                                                onClick={() => navigate('/freelancer/ContractF')}
+                                            >
+                                                Manage Project
                                             </button>
                                         )}
                                         {application.status === 'pending' && (

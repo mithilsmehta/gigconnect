@@ -8,6 +8,7 @@ import {
   acceptProposal,
   rejectProposal,
   getFreelancerApplications,
+  deleteJob,
 } from '../controllers/jobController.js';
 
 const router = express.Router();
@@ -30,5 +31,8 @@ router.patch('/:jobId/applications/:applicationId/reject', requireAuth, rejectPr
 
 // Get freelancer's applications
 router.get('/my-applications', requireAuth, getFreelancerApplications);
+
+// Delete job (clients only)
+router.delete('/:jobId', requireAuth, deleteJob);
 
 export default router;

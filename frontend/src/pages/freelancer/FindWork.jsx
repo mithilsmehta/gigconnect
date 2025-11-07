@@ -9,9 +9,11 @@ export default function FindWork() {
     const [selectedJob, setSelectedJob] = useState(null);
     const [proposal, setProposal] = useState("");
     const [applying, setApplying] = useState(false);
+    const [myApplications, setMyApplications] = useState([]);
 
     useEffect(() => {
         fetchJobs();
+        fetchMyApplications();
     }, []);
 
     const fetchJobs = async () => {
@@ -26,6 +28,18 @@ export default function FindWork() {
             toast.error("Failed to load jobs");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchMyApplications = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await axios.get("http://localhost:5000/api/jobs/my-applications", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setMyApplications(res.data.applications || []);
+        } catch (err) {
+            console.error("Failed to fetch applications:", err);
         }
     };
 
@@ -69,6 +83,7 @@ export default function FindWork() {
             setSelectedJob(null);
             setProposal("");
             fetchJobs(); // Refresh jobs
+            fetchMyApplications(); // Refresh applications
         } catch (err) {
             toast.error(err.response?.data?.message || "Failed to apply");
         } finally {
@@ -166,9 +181,9 @@ export default function FindWork() {
                                         <button
                                             className="btn btn-success"
                                             onClick={() => setSelectedJob(job)}
-                                            disabled={job.applications?.some(app => app.freelancerId === localStorage.getItem("userId"))}
+                                            disabled={myApplications.some(app => app.jobId === job._id)}
                                         >
-                                            {job.applications?.some(app => app.freelancerId === localStorage.getItem("userId"))
+                                            {myApplications.some(app => app.jobId === job._id)
                                                 ? "Applied"
                                                 : "Apply Now"
                                             }

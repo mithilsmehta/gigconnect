@@ -1,5 +1,6 @@
 import Job from '../models/Job.js';
 import User from '../models/User.js';
+import Contract from '../models/Contract.js';
 
 // Create a new job
 export const createJob = async (req, res) => {
@@ -157,10 +158,44 @@ export const acceptProposal = async (req, res) => {
     application.status = 'accepted';
     await job.save();
 
-    res.json({
-      success: true,
-      message: 'Proposal accepted successfully',
-    });
+    // Create contract after accepting proposal
+    try {
+      const freelancer = await User.findById(application.freelancerId);
+
+      const contract = new Contract({
+        jobId: job._id,
+        jobTitle: job.title,
+        jobDescription: job.description,
+        jobBudget: {
+          min: job.budget.min,
+          max: job.budget.max,
+        },
+        clientId: job.clientId,
+        clientName: job.clientName,
+        clientCompany: job.clientCompany,
+        freelancerId: application.freelancerId,
+        freelancerName: freelancer ? `${freelancer.firstName} ${freelancer.lastName}` : 'Unknown',
+        proposal: application.proposal,
+        applicationId: application._id,
+        status: 'active',
+      });
+
+      await contract.save();
+
+      res.json({
+        success: true,
+        message: 'Proposal accepted successfully',
+        contractId: contract._id,
+      });
+    } catch (contractError) {
+      console.error('Contract creation error:', contractError);
+      // Proposal is still accepted even if contract creation fails
+      res.json({
+        success: true,
+        message: 'Proposal accepted successfully',
+        warning: 'Contract creation failed',
+      });
+    }
   } catch (error) {
     console.error('Accept proposal error:', error);
     res.status(500).json({
@@ -241,6 +276,40 @@ export const getFreelancerApplications = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch your applications',
+    });
+  }
+};
+
+// Delete a job (and cascade delete related contracts)
+export const deleteJob = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    // Check if user owns this job
+    if (job.clientId.toString() !== req.userId) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    // Delete all contracts related to this job
+    await Contract.deleteMany({ jobId: jobId });
+
+    // Delete the job
+    await Job.findByIdAndDelete(jobId);
+
+    res.json({
+      success: true,
+      message: 'Job and related contracts deleted successfully',
+    });
+  } catch (error) {
+    console.error('Delete job error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete job',
     });
   }
 };

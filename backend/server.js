@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/authRoutes.js';
 import jobRoutes from './routes/jobRoutes.js';
+import contractRoutes from './routes/contractRoutes.js';
 // import freelancerRoutes from "./routes/freelancerRoutes.js";
 
 dotenv.config();
@@ -35,6 +36,7 @@ app.get('/api/test', (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
+app.use('/api/contracts', contractRoutes);
 // app.use("/api/freelancers", freelancerRoutes);
 
 // Error handling middleware

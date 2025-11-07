@@ -33,11 +33,16 @@ export default function App() {
         <Route path="/" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
 
-        {/* DASHBOARD REDIRECT */}
+        {/* DASHBOARD REDIRECT - Always redirect to role-specific dashboard with sidebar */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
-            {localStorage.getItem("userRole") === "freelancer" ? <FreelancerDashboard /> :
-              localStorage.getItem("userRole") === "client" ? <ClientDashboard /> : <Login />}
+            <Navigate to={
+              localStorage.getItem("userRole") === "freelancer"
+                ? "/freelancer/dashboard"
+                : localStorage.getItem("userRole") === "client"
+                  ? "/client/dashboard"
+                  : "/login"
+            } replace />
           </ProtectedRoute>
         } />
 

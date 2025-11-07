@@ -54,8 +54,17 @@ function LoginCore() {
 
         toast.success("Login successful!");
 
-        // ⭐ go direct to dashboard
-        setTimeout(() => navigate("/dashboard"), 1000);
+        // ⭐ Redirect to role-specific dashboard with sidebar
+        const role = res.data.user.role;
+        setTimeout(() => {
+          if (role === "client") {
+            navigate("/client/dashboard");
+          } else if (role === "freelancer") {
+            navigate("/freelancer/dashboard");
+          } else {
+            navigate("/dashboard");
+          }
+        }, 1000);
       } else {
         toast.error(res.data.message || "Invalid credentials.");
       }
