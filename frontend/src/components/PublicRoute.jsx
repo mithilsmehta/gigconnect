@@ -2,5 +2,10 @@ import { Navigate } from "react-router-dom";
 
 export default function PublicRoute({ children }) {
   const token = localStorage.getItem("token");
-  return token ? <Navigate to="/home" replace /> : children;
+
+  if (token) {
+    return <Navigate to="/dashboard" />;
+  }
+
+  return children;
 }

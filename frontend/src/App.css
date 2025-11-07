@@ -40,3 +40,42 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Layout */
+.sidebar { width: 240px; transform: translateX(-260px); transition: transform .2s ease; z-index: 1031; }
+.sidebar.show { transform: translateX(0); }
+@media (min-width: 768px){ .sidebar { transform: none; } }
+.content { margin-left: 0; }
+@media (min-width: 768px){ .content { margin-left: 240px; } }
+
+/* Theme A: Clean Green (default) */
+.theme-a {
+  --gc-accent: #16a34a;
+  --gc-bg: #f8fafb;
+  --gc-card: #ffffff;
+}
+.theme-a body { background: var(--gc-bg); }
+.theme-a .btn-success { background-color: var(--gc-accent); border-color: var(--gc-accent); }
+.theme-a .text-success, .theme-a .border-success, .theme-a .bg-success { color: #16a34a !important; }
+
+/* Theme B: Purple Gradient */
+.theme-b {
+  --gc-accent: #7c3aed;
+  --gc-bg: linear-gradient(180deg, #f5f3ff, #ffffff);
+}
+.theme-b body { background: var(--gc-bg); }
+.theme-b .btn-success { background-color: var(--gc-accent); border-color: var(--gc-accent); }
+.theme-b .badge.text-bg-success { background-color: var(--gc-accent) !important; }
+
+/* Theme C: Dark Neon */
+.theme-c {
+  --gc-accent: #22d3ee;
+  --gc-bg: #0b1220;
+  --gc-card: #121a2b;
+  color-scheme: dark;
+}
+.theme-c body { background: var(--gc-bg); color: #dbeafe; }
+.theme-c .card { background: var(--gc-card) !important; color: #e2e8f0; }
+.theme-c .navbar, .theme-c .sidebar { background: #0f172a !important; color: #e2e8f0; }
+.theme-c .btn-success { background-color: var(--gc-accent); border-color: var(--gc-accent); color: #0b1220; }
+.theme-c a, .theme-c .nav-link { color: #c7d2fe; }

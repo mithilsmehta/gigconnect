@@ -153,39 +153,39 @@ function RegisterCore() {
   }, [theme]);
 
   /* ---------------------------- Google Signup ---------------------------- */
-const googleSignup = async () => {
-  try {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const gUser = result.user;
+  const googleSignup = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const gUser = result.user;
 
-    // check does this email exists?
-    const check = await axios.post("http://localhost:5000/api/auth/check-user", {
-      email: gUser.email,
-    });
+      // check does this email exists?
+      const check = await axios.post("http://localhost:5000/api/auth/check-user", {
+        email: gUser.email,
+      });
 
-    if (check.data.exists) {
-      // already registered
-      toast.success("Welcome back! Please login.");
-      navigate("/login");
-      return;
+      if (check.data.exists) {
+        // already registered
+        toast.success("Welcome back! Please login.");
+        navigate("/login");
+        return;
+      }
+
+      // new google user → continue onboarding from Step 2
+      setValue("firstName", gUser.displayName?.split(" ")[0] || "");
+      setValue("lastName", gUser.displayName?.split(" ")[1] || "");
+      setValue("email", gUser.email);
+
+      setEmailVerified(true);
+
+      toast.success("Google connected! Continue to choose your role.");
+      setStep(2);
+
+    } catch (error) {
+      console.log(error);
+      toast.error("Google authentication failed!");
     }
-
-    // new google user → continue onboarding from Step 2
-    setValue("firstName", gUser.displayName?.split(" ")[0] || "");
-    setValue("lastName", gUser.displayName?.split(" ")[1] || "");
-    setValue("email", gUser.email);
-
-    setEmailVerified(true);
-
-    toast.success("Google connected! Continue to choose your role.");
-    setStep(2);
-
-  } catch (error) {
-    console.log(error);
-    toast.error("Google authentication failed!");
-  }
-};
+  };
 
   /* ----------------------------- Email OTP ------------------------------- */
   const sendOtp = async () => {
@@ -325,6 +325,10 @@ const googleSignup = async () => {
       skills: skillsToSave,
       experiences, // send entire array (both roles)
       recaptchaToken,
+      hourlyRate: data.hourlyRate || 0,
+      about: data.bio || "",
+      country: data.country || "",
+      countryCode: data.countryCode || "+91",
     };
 
     const response = await axios.post("http://localhost:5000/api/auth/register", payload, {
@@ -429,10 +433,10 @@ const googleSignup = async () => {
       prev.map((e) =>
         e.id === id
           ? {
-              ...e,
-              present: !e.present,
-              endYear: !e.present ? "Present" : "",
-            }
+            ...e,
+            present: !e.present,
+            endYear: !e.present ? "Present" : "",
+          }
           : e
       )
     );
@@ -674,9 +678,8 @@ const googleSignup = async () => {
                 {["client", "freelancer"].map((r) => (
                   <div
                     key={r}
-                    className={`flex-fill p-4 border rounded-3 text-center cursor-pointer transition-all ${
-                      currentRole === r ? "border-success bg-success bg-opacity-10 shadow-sm" : "border-2"
-                    }`}
+                    className={`flex-fill p-4 border rounded-3 text-center cursor-pointer transition-all ${currentRole === r ? "border-success bg-success bg-opacity-10 shadow-sm" : "border-2"
+                      }`}
                     role="button"
                     onClick={() => setValue("role", r)}
                   >
@@ -706,99 +709,99 @@ const googleSignup = async () => {
           {/* STEP 3 (client) / STEP 7 (freelancer) — Experience (Format A) */}
           {((currentRole === "client" && step === 3) ||
             (currentRole === "freelancer" && step === 7)) && (
-            <div>
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <h6 className="mb-0">Experience</h6>
-                <button type="button" className="btn btn-outline-success btn-sm" onClick={addExperience}>
-                  + Add experience
-                </button>
-              </div>
+              <div>
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h6 className="mb-0">Experience</h6>
+                  <button type="button" className="btn btn-outline-success btn-sm" onClick={addExperience}>
+                    + Add experience
+                  </button>
+                </div>
 
-              {experiences.map((ex, idx) => (
-                <div key={ex.id} className="border rounded-3 p-3 mb-3">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <strong>Role {idx + 1}</strong>
-                    {experiences.length > 1 && (
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={() => removeExperience(ex.id)}
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="row g-3">
-                    <div className="col-12 col-md-6">
-                      <input
-                        className="form-control"
-                        placeholder="Title (e.g., Frontend Developer)"
-                        value={ex.title}
-                        onChange={(e) => setExpField(ex.id, "title", e.target.value)}
-                      />
-                    </div>
-                    <div className="col-12 col-md-6">
-                      <input
-                        className="form-control"
-                        placeholder="Company"
-                        value={ex.company}
-                        onChange={(e) => setExpField(ex.id, "company", e.target.value)}
-                      />
+                {experiences.map((ex, idx) => (
+                  <div key={ex.id} className="border rounded-3 p-3 mb-3">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <strong>Role {idx + 1}</strong>
+                      {experiences.length > 1 && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => removeExperience(ex.id)}
+                        >
+                          Remove
+                        </button>
+                      )}
                     </div>
 
-                    <div className="col-12 col-md-4">
-                      <select
-                        className="form-select"
-                        value={ex.type}
-                        onChange={(e) => setExpField(ex.id, "type", e.target.value)}
-                      >
-                        <option value="">Type (remote / onsite / hybrid)</option>
-                        {TYPE_VALUES.map((t) => (
-                          <option key={t} value={t}>
-                            {t}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-6 col-md-4">
-                      <input
-                        type="number"
-                        className="form-control"
-                        placeholder="Start Year (YYYY)"
-                        value={ex.startYear}
-                        onChange={(e) => setExpField(ex.id, "startYear", e.target.value)}
-                      />
-                    </div>
-
-                    <div className="col-6 col-md-4">
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="End Year (YYYY)"
-                        value={ex.endYear}
-                        disabled={ex.present}
-                        onChange={(e) => setExpField(ex.id, "endYear", e.target.value)}
-                      />
-                      <div className="form-check mt-2">
+                    <div className="row g-3">
+                      <div className="col-12 col-md-6">
                         <input
-                          className="form-check-input"
-                          type="checkbox"
-                          id={`present-${ex.id}`}
-                          checked={ex.present}
-                          onChange={() => togglePresent(ex.id)}
+                          className="form-control"
+                          placeholder="Title (e.g., Frontend Developer)"
+                          value={ex.title}
+                          onChange={(e) => setExpField(ex.id, "title", e.target.value)}
                         />
-                        <label className="form-check-label" htmlFor={`present-${ex.id}`}>
-                          Present
-                        </label>
+                      </div>
+                      <div className="col-12 col-md-6">
+                        <input
+                          className="form-control"
+                          placeholder="Company"
+                          value={ex.company}
+                          onChange={(e) => setExpField(ex.id, "company", e.target.value)}
+                        />
+                      </div>
+
+                      <div className="col-12 col-md-4">
+                        <select
+                          className="form-select"
+                          value={ex.type}
+                          onChange={(e) => setExpField(ex.id, "type", e.target.value)}
+                        >
+                          <option value="">Type (remote / onsite / hybrid)</option>
+                          {TYPE_VALUES.map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="col-6 col-md-4">
+                        <input
+                          type="number"
+                          className="form-control"
+                          placeholder="Start Year (YYYY)"
+                          value={ex.startYear}
+                          onChange={(e) => setExpField(ex.id, "startYear", e.target.value)}
+                        />
+                      </div>
+
+                      <div className="col-6 col-md-4">
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="End Year (YYYY)"
+                          value={ex.endYear}
+                          disabled={ex.present}
+                          onChange={(e) => setExpField(ex.id, "endYear", e.target.value)}
+                        />
+                        <div className="form-check mt-2">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            id={`present-${ex.id}`}
+                            checked={ex.present}
+                            onChange={() => togglePresent(ex.id)}
+                          />
+                          <label className="form-check-label" htmlFor={`present-${ex.id}`}>
+                            Present
+                          </label>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
 
           {/* CLIENT – Choose Category (Step 4) */}
           {currentRole === "client" && step === 4 && (
@@ -868,8 +871,8 @@ const googleSignup = async () => {
                   skillsFor(block.category, block.subcategory) ||
                   (block.category
                     ? Array.from(
-                        new Set(Object.values(CATEGORY_TREE[block.category] || {}).flat())
-                      )
+                      new Set(Object.values(CATEGORY_TREE[block.category] || {}).flat())
+                    )
                     : []);
                 return (
                   <div key={block.id} className="border rounded-3 p-3 mb-3">
@@ -955,32 +958,31 @@ const googleSignup = async () => {
             </div>
           )}
 
-{currentRole === "freelancer" && step === 3 && (
-  <div className="mb-4">
-    <h5 className="fw-bold mb-2">Have you freelanced before?</h5>
-    <p className="text-muted small mb-4">
-      This lets us know how much help to give you along the way.
-      We won’t share your answer with anyone else, including potential clients.
-    </p>
+          {currentRole === "freelancer" && step === 3 && (
+            <div className="mb-4">
+              <h5 className="fw-bold mb-2">Have you freelanced before?</h5>
+              <p className="text-muted small mb-4">
+                This lets us know how much help to give you along the way.
+                We won’t share your answer with anyone else, including potential clients.
+              </p>
 
-    {[
-      "I am brand new to this",
-      "I have some experience",
-      "I am an expert"
-    ].map((t) => (
-      <div
-        key={t}
-        className={`border rounded-3 p-3 mb-3 cursor-pointer transition-all ${
-          watch("experienceLevel") === t ? "border-success bg-success bg-opacity-10 shadow-sm" : ""
-        }`}
-        role="button"
-        onClick={() => setValue("experienceLevel", t)}
-      >
-        {t}
-      </div>
-    ))}
-  </div>
-)}
+              {[
+                "I am brand new to this",
+                "I have some experience",
+                "I am an expert"
+              ].map((t) => (
+                <div
+                  key={t}
+                  className={`border rounded-3 p-3 mb-3 cursor-pointer transition-all ${watch("experienceLevel") === t ? "border-success bg-success bg-opacity-10 shadow-sm" : ""
+                    }`}
+                  role="button"
+                  onClick={() => setValue("experienceLevel", t)}
+                >
+                  {t}
+                </div>
+              ))}
+            </div>
+          )}
           {/* FREELANCER – Skills (Step 5) */}
           {currentRole === "freelancer" && step === 5 && (
             <div className="mb-4">
@@ -1089,9 +1091,8 @@ const googleSignup = async () => {
                 {...register("bio")}
               />
               <small
-                className={`text-muted ${
-                  bio.trim().split(/\s+/).filter(Boolean).length < 50 ? "text-danger" : "text-success"
-                }`}
+                className={`text-muted ${bio.trim().split(/\s+/).filter(Boolean).length < 50 ? "text-danger" : "text-success"
+                  }`}
               >
                 Word count: {bio.trim().split(/\s+/).filter(Boolean).length} / 50 minimum
               </small>

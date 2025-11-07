@@ -1,25 +1,17 @@
 import { Link, NavLink } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext";
 
-export default function Navbar() {
+export default function Navbar({ onToggleSidebar }) {
+  const { theme } = useTheme();
+
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary fixed-top">
-      <div className="container">
-        <Link className="navbar-brand fw-bold" to="/">GigConnect</Link>
-
-        <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
-          <span className="navbar-toggler-icon"></span>
-        </button>
-
-        <div className="collapse navbar-collapse" id="mainNav">
-          <ul className="navbar-nav ms-auto gap-lg-2">
-            <li className="nav-item">
-              <NavLink className="nav-link" to="/login">Login</NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink className="btn btn-primary ms-lg-2" to="/register">Create account</NavLink>
-            </li>
-          </ul>
-        </div>
+    <nav className="navbar navbar-expand bg-body-tertiary border-bottom px-3 sticky-top">
+      <button className="btn btn-outline-secondary me-2 d-md-none" onClick={onToggleSidebar}>☰</button>
+      <Link to="/" className="navbar-brand fw-bold">GigConnect</Link>
+      <div className="ms-auto d-flex align-items-center gap-2">
+        <span className="badge text-bg-success">Theme {theme.toUpperCase()}</span>
+        <NavLink to="/messages" className="btn btn-outline-secondary btn-sm">💬 Messages</NavLink>
+        <NavLink to="/profile" className="btn btn-success btn-sm">My Profile</NavLink>
       </div>
     </nav>
   );

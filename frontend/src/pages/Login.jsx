@@ -44,10 +44,21 @@ function LoginCore() {
       });
 
       if (res.data.success) {
+        // ⭐ store everything we need
         localStorage.setItem("token", res.data.token);
+        localStorage.setItem("userRole", res.data.user.role);
+        localStorage.setItem("userName", `${res.data.user.firstName} ${res.data.user.lastName}`);
+        localStorage.setItem("userEmail", res.data.user.email);
+        localStorage.setItem("userPhone", res.data.user.phone || "");
+        localStorage.setItem("userCountry", res.data.user.country || "");
+
         toast.success("Login successful!");
-        setTimeout(() => navigate("/home"), 1200);
-      } else toast.error(res.data.message || "Invalid credentials.");
+
+        // ⭐ go direct to dashboard
+        setTimeout(() => navigate("/dashboard"), 1000);
+      } else {
+        toast.error(res.data.message || "Invalid credentials.");
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || "Login failed. Try again.");
     } finally {
@@ -112,9 +123,8 @@ function LoginCore() {
 
       <div className="d-flex align-items-center justify-content-center vh-100">
         <div
-          className={`card shadow-lg p-4 rounded-4 border-0 ${
-            theme === "dark" ? "bg-dark text-light" : "bg-light"
-          }`}
+          className={`card shadow-lg p-4 rounded-4 border-0 ${theme === "dark" ? "bg-dark text-light" : "bg-light"
+            }`}
           style={{ width: 420 }}
         >
           <h3 className="text-center text-success fw-bold mb-3">
@@ -211,9 +221,8 @@ function LoginCore() {
                 Don’t have an account?{" "}
                 <Link
                   to="/"
-                  className={`text-decoration-none fw-semibold ${
-                    theme === "dark" ? "text-info" : "text-success"
-                  }`}
+                  className={`text-decoration-none fw-semibold ${theme === "dark" ? "text-info" : "text-success"
+                    }`}
                 >
                   Register
                 </Link>

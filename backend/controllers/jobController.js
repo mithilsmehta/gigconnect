@@ -1,0 +1,246 @@
+import Job from '../models/Job.js';
+import User from '../models/User.js';
+
+// Create a new job
+export const createJob = async (req, res) => {
+  try {
+    const { title, description, budget, roles } = req.body;
+
+    // Get client info
+    const client = await User.findById(req.userId);
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    // Process roles - convert skills string to array
+    const processedRoles = roles.map((role) => ({
+      title: role.title,
+      skills: role.skills
+        ? role.skills
+            .split(',')
+            .map((s) => s.trim())
+            .filter((s) => s)
+        : [],
+      type: role.type || 'remote',
+    }));
+
+    const job = new Job({
+      title,
+      description,
+      budget: {
+        min: budget?.min || 0,
+        max: budget?.max || 0,
+      },
+      roles: processedRoles,
+      clientId: req.userId,
+      clientName: `${client.firstName} ${client.lastName}`,
+      clientCompany: client.companyName || '',
+    });
+
+    await job.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Job posted successfully',
+      job,
+    });
+  } catch (error) {
+    console.error('Create job error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create job',
+      error: error.message,
+    });
+  }
+};
+
+// Get all active jobs (for freelancers)
+export const getActiveJobs = async (req, res) => {
+  try {
+    const jobs = await Job.find({ status: 'active' }).sort({ createdAt: -1 }).limit(50);
+
+    res.json({
+      success: true,
+      jobs,
+    });
+  } catch (error) {
+    console.error('Get jobs error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch jobs',
+    });
+  }
+};
+
+// Get jobs posted by client
+export const getClientJobs = async (req, res) => {
+  try {
+    const jobs = await Job.find({ clientId: req.userId }).sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      jobs,
+    });
+  } catch (error) {
+    console.error('Get client jobs error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch your jobs',
+    });
+  }
+};
+
+// Apply to a job
+export const applyToJob = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { proposal } = req.body;
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    // Check if already applied
+    const existingApplication = job.applications.find((app) => app.freelancerId.toString() === req.userId);
+
+    if (existingApplication) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already applied to this job',
+      });
+    }
+
+    // Add application
+    job.applications.push({
+      freelancerId: req.userId,
+      proposal: proposal || '',
+      appliedAt: new Date(),
+    });
+
+    await job.save();
+
+    res.json({
+      success: true,
+      message: 'Application submitted successfully',
+    });
+  } catch (error) {
+    console.error('Apply to job error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to apply to job',
+    });
+  }
+};
+
+// Accept a proposal
+export const acceptProposal = async (req, res) => {
+  try {
+    const { jobId, applicationId } = req.params;
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    // Check if user owns this job
+    if (job.clientId.toString() !== req.userId) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    // Find and update application
+    const application = job.applications.id(applicationId);
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    application.status = 'accepted';
+    await job.save();
+
+    res.json({
+      success: true,
+      message: 'Proposal accepted successfully',
+    });
+  } catch (error) {
+    console.error('Accept proposal error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to accept proposal',
+    });
+  }
+};
+
+// Reject a proposal
+export const rejectProposal = async (req, res) => {
+  try {
+    const { jobId, applicationId } = req.params;
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    // Check if user owns this job
+    if (job.clientId.toString() !== req.userId) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    // Find and update application
+    const application = job.applications.id(applicationId);
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    application.status = 'rejected';
+    await job.save();
+
+    res.json({
+      success: true,
+      message: 'Proposal rejected',
+    });
+  } catch (error) {
+    console.error('Reject proposal error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reject proposal',
+    });
+  }
+};
+
+// Get freelancer's applications
+export const getFreelancerApplications = async (req, res) => {
+  try {
+    const jobs = await Job.find({
+      'applications.freelancerId': req.userId,
+    }).sort({ createdAt: -1 });
+
+    // Extract applications for this freelancer
+    const applications = jobs.map((job) => {
+      const application = job.applications.find((app) => app.freelancerId.toString() === req.userId);
+      return {
+        _id: application._id,
+        jobId: job._id,
+        jobTitle: job.title,
+        jobDescription: job.description,
+        jobBudget: job.budget,
+        clientName: job.clientName,
+        clientCompany: job.clientCompany,
+        proposal: application.proposal,
+        status: application.status,
+        appliedAt: application.appliedAt,
+        jobCreatedAt: job.createdAt,
+      };
+    });
+
+    res.json({
+      success: true,
+      applications,
+    });
+  } catch (error) {
+    console.error('Get freelancer applications error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch your applications',
+    });
+  }
+};
