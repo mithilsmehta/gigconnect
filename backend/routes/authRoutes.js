@@ -160,3 +160,23 @@ router.post('/email-change/confirm', requireAuth, async (req, res) => {
 });
 
 export default router;
+
+// File upload endpoint for messages
+router.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    const fileUrl = `/uploads/${req.file.filename}`;
+
+    res.json({
+      success: true,
+      fileUrl,
+      fileName: req.file.originalname,
+    });
+  } catch (error) {
+    console.error('File upload error:', error);
+    res.status(500).json({ success: false, message: 'Failed to upload file' });
+  }
+});

@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 export default function ProposalsReceived() {
+    const navigate = useNavigate();
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedProposal, setSelectedProposal] = useState(null);
     const [freelancerProfile, setFreelancerProfile] = useState(null);
     const [loadingProfile, setLoadingProfile] = useState(false);
+    const [viewingFullProfile, setViewingFullProfile] = useState(false);
 
     useEffect(() => {
         fetchClientJobs();
@@ -106,6 +109,28 @@ export default function ProposalsReceived() {
             fetchClientJobs(); // Refresh data
         } catch (err) {
             toast.error("Failed to reject proposal");
+        }
+    };
+
+    const handleStartChat = async (freelancerId, jobId, jobTitle) => {
+        try {
+            const token = localStorage.getItem("token");
+            await axios.post(
+                'http://localhost:5000/api/messages/conversation',
+                {
+                    otherUserId: freelancerId,
+                    jobId,
+                    jobTitle,
+                },
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            toast.success("Opening chat...");
+            navigate('/client/messages');
+        } catch (err) {
+            console.error('Failed to start chat:', err);
+            toast.error('Failed to start chat');
         }
     };
 
@@ -316,6 +341,22 @@ export default function ProposalsReceived() {
                                 </div>
                             </div>
                             <div className="modal-footer">
+                                <button
+                                    className="btn btn-outline-primary"
+                                    onClick={() => handleStartChat(
+                                        selectedProposal.application.freelancerId,
+                                        selectedProposal.job._id,
+                                        selectedProposal.job.title
+                                    )}
+                                >
+                                    💬 Start Chat
+                                </button>
+                                <button
+                                    className="btn btn-outline-info"
+                                    onClick={() => setViewingFullProfile(true)}
+                                >
+                                    👤 View Full Profile
+                                </button>
                                 {selectedProposal.application.status === 'pending' && (
                                     <>
                                         <button
@@ -337,6 +378,115 @@ export default function ProposalsReceived() {
                                         Close
                                     </button>
                                 )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Full Profile Modal */}
+            {viewingFullProfile && freelancerProfile && (
+                <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.7)", zIndex: 1060 }}>
+                    <div className="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div className="modal-content">
+                            <div className="modal-header bg-success text-white">
+                                <h5 className="modal-title">Freelancer Profile</h5>
+                                <button
+                                    type="button"
+                                    className="btn-close btn-close-white"
+                                    onClick={() => setViewingFullProfile(false)}
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                {/* Profile Header */}
+                                <div className="text-center mb-4">
+                                    <div
+                                        className="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                                        style={{ width: 100, height: 100, fontSize: '2.5rem' }}
+                                    >
+                                        {freelancerProfile.firstName?.[0]}{freelancerProfile.lastName?.[0]}
+                                    </div>
+                                    <h3>{freelancerProfile.firstName} {freelancerProfile.lastName}</h3>
+                                    <p className="text-muted">{freelancerProfile.email}</p>
+                                    {freelancerProfile.phone && (
+                                        <p className="text-muted">📞 {freelancerProfile.phone}</p>
+                                    )}
+                                    {freelancerProfile.country && (
+                                        <p className="text-muted">📍 {freelancerProfile.country}</p>
+                                    )}
+                                    {freelancerProfile.hourlyRate > 0 && (
+                                        <h4 className="text-success">${freelancerProfile.hourlyRate}/hr</h4>
+                                    )}
+                                </div>
+
+                                <hr />
+
+                                {/* About */}
+                                {freelancerProfile.about && (
+                                    <div className="mb-4">
+                                        <h5 className="text-success">About</h5>
+                                        <p style={{ whiteSpace: 'pre-wrap' }}>{freelancerProfile.about}</p>
+                                    </div>
+                                )}
+
+                                {/* Skills */}
+                                {freelancerProfile.skills && freelancerProfile.skills.length > 0 && (
+                                    <div className="mb-4">
+                                        <h5 className="text-success">Skills</h5>
+                                        <div className="d-flex flex-wrap gap-2">
+                                            {freelancerProfile.skills.map((skill, idx) => (
+                                                <span key={idx} className="badge bg-success" style={{ fontSize: '0.9rem', padding: '0.5rem 1rem' }}>
+                                                    {skill}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Experience */}
+                                {freelancerProfile.experiences && freelancerProfile.experiences.length > 0 && (
+                                    <div className="mb-4">
+                                        <h5 className="text-success">Work Experience</h5>
+                                        {freelancerProfile.experiences.map((exp, idx) => (
+                                            <div key={idx} className="card mb-3">
+                                                <div className="card-body">
+                                                    <h6 className="card-title">{exp.title}</h6>
+                                                    <p className="card-subtitle mb-2 text-muted">{exp.company}</p>
+                                                    <p className="small text-muted">
+                                                        {exp.startYear} - {exp.present ? 'Present' : exp.endYear}
+                                                        {exp.type && ` • ${exp.type}`}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Additional Info */}
+                                <div className="mb-4">
+                                    <h5 className="text-success">Additional Information</h5>
+                                    <p><strong>Role:</strong> {freelancerProfile.role}</p>
+                                    <p><strong>Member Since:</strong> {new Date(freelancerProfile.createdAt).toLocaleDateString()}</p>
+                                    <p><strong>Verified:</strong> {freelancerProfile.isVerified ? '✅ Yes' : '❌ No'}</p>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    className="btn btn-success"
+                                    onClick={() => {
+                                        setViewingFullProfile(false);
+                                        handleStartChat(
+                                            selectedProposal.application.freelancerId,
+                                            selectedProposal.job._id,
+                                            selectedProposal.job.title
+                                        );
+                                    }}
+                                >
+                                    💬 Start Chat
+                                </button>
+                                <button className="btn btn-secondary" onClick={() => setViewingFullProfile(false)}>
+                                    Close
+                                </button>
                             </div>
                         </div>
                     </div>

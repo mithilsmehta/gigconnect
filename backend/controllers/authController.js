@@ -147,6 +147,7 @@ export const login = async (req, res) => {
         country: user.country,
         countryCode: user.countryCode,
       },
+      userId: user._id.toString(), // Add userId for easy access
     });
   } catch {
     res.status(500).json({ message: 'Login error' });

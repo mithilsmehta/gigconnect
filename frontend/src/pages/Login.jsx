@@ -46,6 +46,7 @@ function LoginCore() {
       if (res.data.success) {
         // ⭐ store everything we need
         localStorage.setItem("token", res.data.token);
+        localStorage.setItem("userId", res.data.userId || res.data.user.id);
         localStorage.setItem("userRole", res.data.user.role);
         localStorage.setItem("userName", `${res.data.user.firstName} ${res.data.user.lastName}`);
         localStorage.setItem("userEmail", res.data.user.email);

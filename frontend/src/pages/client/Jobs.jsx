@@ -29,14 +29,18 @@ export default function Jobs() {
     };
 
     const formatBudget = (budget) => {
-        if (budget.min && budget.max) {
+        if (budget.type === 'hourly') {
+            return `$${budget.amount}/hr`;
+        } else if (budget.amount) {
+            return `$${budget.amount}`;
+        } else if (budget.min && budget.max) {
             return `$${budget.min} - $${budget.max}`;
         } else if (budget.min) {
             return `$${budget.min}+`;
         } else if (budget.max) {
             return `Up to $${budget.max}`;
         }
-        return "Budget not specified";
+        return "Not specified";
     };
 
     const getTimeAgo = (date) => {
@@ -98,8 +102,8 @@ export default function Jobs() {
                                     <div className="d-flex justify-content-between align-items-start mb-3">
                                         <h5 className="card-title mb-0">{job.title}</h5>
                                         <span className={`badge ${job.status === 'active' ? 'bg-success' :
-                                                job.status === 'closed' ? 'bg-secondary' :
-                                                    'bg-warning'
+                                            job.status === 'closed' ? 'bg-secondary' :
+                                                'bg-warning'
                                             }`}>
                                             {job.status}
                                         </span>
@@ -121,12 +125,12 @@ export default function Jobs() {
                                                 <small className="text-muted">Proposals</small>
                                             </div>
                                             <div className="col-4">
-                                                <div className="text-primary fw-bold">{job.roles?.length || 0}</div>
-                                                <small className="text-muted">Roles</small>
+                                                <div className="text-primary fw-bold">{formatBudget(job.budget)}</div>
+                                                <small className="text-muted">Budget</small>
                                             </div>
                                             <div className="col-4">
-                                                <div className="text-info fw-bold">{formatBudget(job.budget)}</div>
-                                                <small className="text-muted">Budget</small>
+                                                <div className="text-info fw-bold">{job.duration || 0} days</div>
+                                                <small className="text-muted">Duration</small>
                                             </div>
                                         </div>
                                     </div>
@@ -134,20 +138,21 @@ export default function Jobs() {
                                     <div className="mb-3">
                                         <small className="text-muted">
                                             Posted {getTimeAgo(job.createdAt)}
+                                            {job.workType && ` • ${job.workType}`}
                                         </small>
                                     </div>
 
-                                    {job.roles && job.roles.length > 0 && (
+                                    {job.skills && job.skills.length > 0 && (
                                         <div className="mb-3">
                                             <div className="d-flex flex-wrap gap-1">
-                                                {job.roles.slice(0, 3).map((role, idx) => (
+                                                {job.skills.slice(0, 4).map((skill, idx) => (
                                                     <span key={idx} className="badge bg-light text-dark border">
-                                                        {role.title}
+                                                        {skill}
                                                     </span>
                                                 ))}
-                                                {job.roles.length > 3 && (
+                                                {job.skills.length > 4 && (
                                                     <span className="badge bg-light text-dark border">
-                                                        +{job.roles.length - 3} more
+                                                        +{job.skills.length - 4} more
                                                     </span>
                                                 )}
                                             </div>
@@ -160,12 +165,6 @@ export default function Jobs() {
                                             onClick={() => navigate("/client/proposals")}
                                         >
                                             View Proposals ({job.applications?.length || 0})
-                                        </button>
-                                        <button
-                                            className="btn btn-outline-secondary btn-sm"
-                                            disabled
-                                        >
-                                            Edit
                                         </button>
                                     </div>
                                 </div>
