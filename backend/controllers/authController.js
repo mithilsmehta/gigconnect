@@ -273,3 +273,20 @@ export const confirmEmailChange = async (req, res) => {
     res.status(500).json({ message: 'server error final change' });
   }
 };
+
+// Get user profile by ID (for viewing other users' profiles)
+export const getUserProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId).select('-password -emailChange');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error('Get user profile error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch user profile' });
+  }
+};

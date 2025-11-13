@@ -6,6 +6,9 @@ import "react-toastify/dist/ReactToastify.css";
 export default function ProposalsReceived() {
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedProposal, setSelectedProposal] = useState(null);
+    const [freelancerProfile, setFreelancerProfile] = useState(null);
+    const [loadingProfile, setLoadingProfile] = useState(false);
 
     useEffect(() => {
         fetchClientJobs();
@@ -26,8 +29,38 @@ export default function ProposalsReceived() {
         }
     };
 
+    const fetchFreelancerProfile = async (freelancerId) => {
+        setLoadingProfile(true);
+        try {
+            const token = localStorage.getItem("token");
+            const res = await axios.get(`http://localhost:5000/api/auth/user/${freelancerId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setFreelancerProfile(res.data.user);
+        } catch (err) {
+            console.error("Failed to fetch freelancer profile:", err);
+            toast.error("Failed to load freelancer profile");
+        } finally {
+            setLoadingProfile(false);
+        }
+    };
+
+    const handleViewProposal = (job, application) => {
+        setSelectedProposal({ job, application });
+        fetchFreelancerProfile(application.freelancerId);
+    };
+
+    const closeModal = () => {
+        setSelectedProposal(null);
+        setFreelancerProfile(null);
+    };
+
     const formatBudget = (budget) => {
-        if (budget.min && budget.max) {
+        if (budget.type === 'hourly') {
+            return `$${budget.amount}/hr`;
+        } else if (budget.amount) {
+            return `$${budget.amount}`;
+        } else if (budget.min && budget.max) {
             return `$${budget.min} - $${budget.max}`;
         } else if (budget.min) {
             return `$${budget.min}+`;
@@ -55,6 +88,7 @@ export default function ProposalsReceived() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             toast.success("Proposal accepted!");
+            closeModal();
             fetchClientJobs(); // Refresh data
         } catch (err) {
             toast.error("Failed to accept proposal");
@@ -68,6 +102,7 @@ export default function ProposalsReceived() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             toast.success("Proposal rejected");
+            closeModal();
             fetchClientJobs(); // Refresh data
         } catch (err) {
             toast.error("Failed to reject proposal");
@@ -134,8 +169,8 @@ export default function ProposalsReceived() {
                                         {job.applications.map((application, idx) => (
                                             <div key={application._id || idx} className="col-lg-6">
                                                 <div className={`card h-100 ${application.status === 'accepted' ? 'border-success' :
-                                                        application.status === 'rejected' ? 'border-danger' :
-                                                            'border-light'
+                                                    application.status === 'rejected' ? 'border-danger' :
+                                                        'border-light'
                                                     }`}>
                                                     <div className="card-body">
                                                         <div className="d-flex justify-content-between align-items-start mb-2">
@@ -143,8 +178,8 @@ export default function ProposalsReceived() {
                                                                 Freelancer Application
                                                             </h6>
                                                             <span className={`badge ${application.status === 'accepted' ? 'bg-success' :
-                                                                    application.status === 'rejected' ? 'bg-danger' :
-                                                                        'bg-warning'
+                                                                application.status === 'rejected' ? 'bg-danger' :
+                                                                    'bg-warning'
                                                                 }`}>
                                                                 {application.status}
                                                             </span>
@@ -153,31 +188,23 @@ export default function ProposalsReceived() {
                                                             Applied {getTimeAgo(application.appliedAt)}
                                                         </small>
                                                         <div className="mt-3">
-                                                            <h6 className="small text-muted mb-2">Proposal:</h6>
                                                             <p className="card-text" style={{
                                                                 fontSize: "0.9rem",
-                                                                maxHeight: "120px",
+                                                                maxHeight: "80px",
                                                                 overflowY: "auto"
                                                             }}>
-                                                                {application.proposal || "No proposal message provided."}
+                                                                {application.proposal?.substring(0, 150) || "No proposal message provided."}
+                                                                {application.proposal?.length > 150 && "..."}
                                                             </p>
                                                         </div>
-                                                        {application.status === 'pending' && (
-                                                            <div className="d-flex gap-2 mt-3">
-                                                                <button
-                                                                    className="btn btn-success btn-sm flex-fill"
-                                                                    onClick={() => handleAcceptProposal(job._id, application._id)}
-                                                                >
-                                                                    Accept
-                                                                </button>
-                                                                <button
-                                                                    className="btn btn-outline-danger btn-sm flex-fill"
-                                                                    onClick={() => handleRejectProposal(job._id, application._id)}
-                                                                >
-                                                                    Reject
-                                                                </button>
-                                                            </div>
-                                                        )}
+                                                        <div className="d-flex gap-2 mt-3">
+                                                            <button
+                                                                className="btn btn-outline-primary btn-sm flex-fill"
+                                                                onClick={() => handleViewProposal(job, application)}
+                                                            >
+                                                                View Full Proposal
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -187,6 +214,132 @@ export default function ProposalsReceived() {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Proposal Detail Modal */}
+            {selectedProposal && (
+                <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+                    <div className="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Proposal Details</h5>
+                                <button type="button" className="btn-close" onClick={closeModal}></button>
+                            </div>
+                            <div className="modal-body">
+                                {/* Job Info */}
+                                <div className="mb-4">
+                                    <h6 className="text-muted">Job</h6>
+                                    <h5>{selectedProposal.job.title}</h5>
+                                    <p className="text-muted">{selectedProposal.job.description}</p>
+                                </div>
+
+                                <hr />
+
+                                {/* Proposal */}
+                                <div className="mb-4">
+                                    <h6 className="text-muted">Proposal</h6>
+                                    <p style={{ whiteSpace: "pre-wrap" }}>
+                                        {selectedProposal.application.proposal || "No proposal message provided."}
+                                    </p>
+                                    <small className="text-muted">
+                                        Submitted {getTimeAgo(selectedProposal.application.appliedAt)}
+                                    </small>
+                                </div>
+
+                                <hr />
+
+                                {/* Freelancer Profile */}
+                                <div>
+                                    <h6 className="text-muted mb-3">Freelancer Profile</h6>
+                                    {loadingProfile ? (
+                                        <div className="text-center py-3">
+                                            <div className="spinner-border spinner-border-sm" role="status"></div>
+                                            <p className="mt-2 small">Loading profile...</p>
+                                        </div>
+                                    ) : freelancerProfile ? (
+                                        <div>
+                                            <div className="d-flex align-items-center mb-3">
+                                                <div className="bg-success text-white rounded-circle d-flex align-items-center justify-content-center"
+                                                    style={{ width: 60, height: 60, fontSize: "1.5rem" }}>
+                                                    {freelancerProfile.firstName?.[0]}{freelancerProfile.lastName?.[0]}
+                                                </div>
+                                                <div className="ms-3">
+                                                    <h5 className="mb-0">{freelancerProfile.firstName} {freelancerProfile.lastName}</h5>
+                                                    <p className="text-muted mb-0">{freelancerProfile.email}</p>
+                                                    {freelancerProfile.hourlyRate > 0 && (
+                                                        <p className="text-success mb-0">${freelancerProfile.hourlyRate}/hr</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {freelancerProfile.about && (
+                                                <div className="mb-3">
+                                                    <strong>About:</strong>
+                                                    <p className="mt-1">{freelancerProfile.about}</p>
+                                                </div>
+                                            )}
+
+                                            {freelancerProfile.skills && freelancerProfile.skills.length > 0 && (
+                                                <div className="mb-3">
+                                                    <strong>Skills:</strong>
+                                                    <div className="d-flex flex-wrap gap-1 mt-2">
+                                                        {freelancerProfile.skills.map((skill, idx) => (
+                                                            <span key={idx} className="badge bg-light text-dark border">
+                                                                {skill}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {freelancerProfile.experiences && freelancerProfile.experiences.length > 0 && (
+                                                <div>
+                                                    <strong>Experience:</strong>
+                                                    <div className="mt-2">
+                                                        {freelancerProfile.experiences.map((exp, idx) => (
+                                                            <div key={idx} className="mb-2 p-2 border-start border-3 border-success ps-3">
+                                                                <strong>{exp.title}</strong> at {exp.company}
+                                                                <br />
+                                                                <small className="text-muted">
+                                                                    {exp.startYear} - {exp.present ? 'Present' : exp.endYear}
+                                                                </small>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <p className="text-muted">Unable to load freelancer profile</p>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                {selectedProposal.application.status === 'pending' && (
+                                    <>
+                                        <button
+                                            className="btn btn-danger"
+                                            onClick={() => handleRejectProposal(selectedProposal.job._id, selectedProposal.application._id)}
+                                        >
+                                            Reject
+                                        </button>
+                                        <button
+                                            className="btn btn-success"
+                                            onClick={() => handleAcceptProposal(selectedProposal.job._id, selectedProposal.application._id)}
+                                        >
+                                            Accept Proposal
+                                        </button>
+                                    </>
+                                )}
+                                {selectedProposal.application.status !== 'pending' && (
+                                    <button className="btn btn-secondary" onClick={closeModal}>
+                                        Close
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

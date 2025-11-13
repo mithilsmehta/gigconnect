@@ -24,12 +24,10 @@ export default function Sidebar({ role, collapsed, onToggle }) {
     const items = itemsByRole[role] || [];
     return (
         <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", borderBottom: "1px solid #eee" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", borderBottom: "1px solid #eee" }}>
                 <div className="brand">
-                    {!collapsed && <span style={{ fontWeight: "700", color: "#0F9D58", fontSize: "1.1rem" }}>GigConnect</span>}
-                    {collapsed && <span style={{ fontSize: "1.5rem" }}>💼</span>}
+                    <span style={{ fontWeight: "700", color: "#0F9D58", fontSize: "1.1rem" }}>GigConnect</span>
                 </div>
-                <button className="toggle-btn" onClick={onToggle} title="Toggle sidebar">{collapsed ? "→" : "←"}</button>
             </div>
 
             <div className="menu-group-title" style={{ padding: "12px 16px", fontSize: "0.85rem", fontWeight: "500", color: "#666", textTransform: "uppercase", letterSpacing: "0.5px" }}>

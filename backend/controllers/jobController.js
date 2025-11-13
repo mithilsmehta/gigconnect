@@ -5,7 +5,7 @@ import Contract from '../models/Contract.js';
 // Create a new job
 export const createJob = async (req, res) => {
   try {
-    const { title, description, budget, roles } = req.body;
+    const { title, description, budget, duration, skills, workType } = req.body;
 
     // Get client info
     const client = await User.findById(req.userId);
@@ -13,26 +13,28 @@ export const createJob = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Client not found' });
     }
 
-    // Process roles - convert skills string to array
-    const processedRoles = roles.map((role) => ({
-      title: role.title,
-      skills: role.skills
-        ? role.skills
-            .split(',')
-            .map((s) => s.trim())
-            .filter((s) => s)
-        : [],
-      type: role.type || 'remote',
-    }));
+    // Process skills - convert string to array if needed
+    const processedSkills = Array.isArray(skills)
+      ? skills
+      : skills
+      ? skills
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s)
+      : [];
 
     const job = new Job({
       title,
       description,
       budget: {
-        min: budget?.min || 0,
-        max: budget?.max || 0,
+        type: budget?.type || 'fixed',
+        amount: budget?.amount || 0,
+        min: budget?.min || 0, // Backward compatibility
+        max: budget?.max || 0, // Backward compatibility
       },
-      roles: processedRoles,
+      duration: duration || 0,
+      skills: processedSkills,
+      workType: workType || 'remote',
       clientId: req.userId,
       clientName: `${client.firstName} ${client.lastName}`,
       clientCompany: client.companyName || '',

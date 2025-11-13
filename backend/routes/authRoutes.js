@@ -10,6 +10,7 @@ import {
   updateBasicProfile,
   sendNewEmailOtp,
   verifyNewEmailOtp,
+  getUserProfile,
 } from '../controllers/authController.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
 import { sendEmailOtp, verifyEmailOtp } from '../controllers/authController.js';
@@ -81,6 +82,7 @@ router.post('/register', async (req, res) => {
 });
 router.post('/login', login);
 router.get('/me', requireAuth, me);
+router.get('/user/:userId', requireAuth, getUserProfile);
 // router.post("/upload-resume", upload.single("resume"), uploadResumeOnly);
 
 // ✅ GOOGLE LOGIN
