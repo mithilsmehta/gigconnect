@@ -22,7 +22,7 @@ const PHONE_LIMITS = {
   Other: 8,
 };
 
-const signToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET || 'supersecret', { expiresIn: '1d' });
+const signToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET || 'supersecret', { expiresIn: '7d' });
 
 export const verifyRecaptcha = async (token) => {
   try {
