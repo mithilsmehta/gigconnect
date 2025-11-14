@@ -1,6 +1,7 @@
 import Job from '../models/Job.js';
 import User from '../models/User.js';
 import Contract from '../models/Contract.js';
+import { deductConnects } from './connectController.js';
 
 // Create a new job
 export const createJob = async (req, res) => {
@@ -114,19 +115,32 @@ export const applyToJob = async (req, res) => {
       });
     }
 
-    // Add application
-    job.applications.push({
-      freelancerId: req.userId,
-      proposal: proposal || '',
-      appliedAt: new Date(),
-    });
+    // Deduct connects before applying (2 connects per application)
+    try {
+      const result = await deductConnects(req.userId, 2);
 
-    await job.save();
+      // Add application
+      job.applications.push({
+        freelancerId: req.userId,
+        proposal: proposal || '',
+        appliedAt: new Date(),
+      });
 
-    res.json({
-      success: true,
-      message: 'Application submitted successfully',
-    });
+      await job.save();
+
+      res.json({
+        success: true,
+        message: `Application submitted successfully! ${result.connectsDeducted} connects deducted.`,
+        connectsDeducted: result.connectsDeducted,
+        remainingConnects: result.remainingConnects,
+      });
+    } catch (connectError) {
+      return res.status(400).json({
+        success: false,
+        message: connectError.message,
+        needsConnects: true,
+      });
+    }
   } catch (error) {
     console.error('Apply to job error:', error);
     res.status(500).json({

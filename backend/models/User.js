@@ -51,6 +51,10 @@ const userSchema = new mongoose.Schema(
 
     // NEW: multiple experiences (freelancer step 4)
     experiences: { type: [experienceSchema], default: [] },
+
+    // Connects system (for freelancers to apply to jobs)
+    connects: { type: Number, default: 0 },
+    totalConnectsPurchased: { type: Number, default: 0 },
   },
   { timestamps: true },
 );

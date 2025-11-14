@@ -11,6 +11,10 @@ import authRoutes from './routes/authRoutes.js';
 import jobRoutes from './routes/jobRoutes.js';
 import contractRoutes from './routes/contractRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import payoutAccountRoutes from './routes/payoutAccountRoutes.js';
+import payoutRoutes from './routes/payoutRoutes.js';
+import connectRoutes from './routes/connectRoutes.js';
 // import freelancerRoutes from "./routes/freelancerRoutes.js";
 
 dotenv.config();
@@ -72,6 +76,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/contracts', contractRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/payout-accounts', payoutAccountRoutes);
+app.use('/api/payouts', payoutRoutes);
+app.use('/api/connects', connectRoutes);
 // app.use("/api/freelancers", freelancerRoutes);
 
 // Socket.IO for real-time messaging

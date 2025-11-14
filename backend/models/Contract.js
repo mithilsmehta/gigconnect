@@ -70,6 +70,31 @@ const contractSchema = new mongoose.Schema(
       enum: ['not_started', 'in_progress', 'half_done', 'completed'],
       default: 'not_started',
     },
+
+    // Payment Information
+    paymentStatus: {
+      type: String,
+      enum: ['unfunded', 'funded', 'paid', 'refunded'],
+      default: 'unfunded',
+    },
+    paymentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Payment',
+      default: null,
+    },
+    payoutId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Payout',
+      default: null,
+    },
+    fundedAt: {
+      type: Date,
+      default: null,
+    },
+    paidAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt
