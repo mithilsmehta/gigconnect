@@ -24,6 +24,7 @@ import ContractF from "./pages/freelancer/ContractF";
 import MessagesF from "./pages/freelancer/MessagesF";
 import ProfileF from "./pages/freelancer/ProfileF";
 import ChangeEmail from "./pages/freelancer/ChangeEmail";
+import BuyConnects from "./pages/BuyConnects";
 
 export default function App() {
   return (
@@ -74,6 +75,9 @@ export default function App() {
         {/* PROFILE PAGES WITHOUT SIDEBAR */}
         <Route path="/freelancer/profileF" element={<ProtectedRoute><RoleRoute allow={["freelancer"]}><ProfileF /></RoleRoute></ProtectedRoute>} />
         <Route path="/freelancer/change-email" element={<ProtectedRoute><RoleRoute allow={["freelancer"]}><ChangeEmail /></RoleRoute></ProtectedRoute>} />
+
+        {/* BUY CONNECTS PAGE */}
+        <Route path="/buy-connects" element={<ProtectedRoute><RoleRoute allow={["freelancer"]}><BuyConnects /></RoleRoute></ProtectedRoute>} />
 
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" replace />} />

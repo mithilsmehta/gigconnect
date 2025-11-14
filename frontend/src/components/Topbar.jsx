@@ -1,6 +1,27 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getConnectBalance } from '../api/connectAPI';
+
 export default function Topbar({ onLogout, primary }) {
     const name = localStorage.getItem("userName") || "User";
     const role = localStorage.getItem("userRole") || "";
+    const [connects, setConnects] = useState(0);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (role === 'freelancer') {
+            fetchConnects();
+        }
+    }, [role]);
+
+    const fetchConnects = async () => {
+        try {
+            const res = await getConnectBalance();
+            setConnects(res.data.connects);
+        } catch (err) {
+            console.error('Failed to fetch connects:', err);
+        }
+    };
 
     return (
         <div className="topbar">
@@ -12,6 +33,23 @@ export default function Topbar({ onLogout, primary }) {
                 </span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {role === 'freelancer' && (
+                    <button
+                        className="btn btn-sm btn-success"
+                        onClick={() => navigate('/buy-connects')}
+                        style={{
+                            padding: '6px 16px',
+                            borderRadius: 20,
+                            fontSize: '0.9rem',
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                        }}
+                    >
+                        ⚡ {connects} Connects
+                    </button>
+                )}
                 <button className="logout-btn" onClick={onLogout}>Logout</button>
             </div>
         </div>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { getConnectBalance } from "../../api/connectAPI";
 
 export default function FindWork() {
     const navigate = useNavigate();
@@ -14,11 +15,23 @@ export default function FindWork() {
     const [myApplications, setMyApplications] = useState([]);
     const [clientProfile, setClientProfile] = useState(null);
     const [viewingFullProfile, setViewingFullProfile] = useState(false);
+    const [connects, setConnects] = useState(0);
+    const [checkingConnects, setCheckingConnects] = useState(false);
 
     useEffect(() => {
         fetchJobs();
         fetchMyApplications();
+        fetchConnects();
     }, []);
+
+    const fetchConnects = async () => {
+        try {
+            const res = await getConnectBalance();
+            setConnects(res.data.connects);
+        } catch (err) {
+            console.error('Failed to fetch connects:', err);
+        }
+    };
 
     const fetchJobs = async () => {
         try {
@@ -85,28 +98,50 @@ export default function FindWork() {
         return `${diffInDays}d ago`;
     };
 
+    const handleCheckConnectsAndApply = async (job) => {
+        // Check if user has enough connects
+        if (connects < 2) {
+            toast.error("Insufficient connects! You need 2 connects to apply.");
+            return;
+        }
+
+        // Show the application modal
+        handleViewJob(job);
+    };
+
     const handleApply = async (jobId) => {
         if (!proposal.trim()) {
             toast.error("Please write a proposal");
             return;
         }
 
+        // Check connects again before applying
+        if (connects < 2) {
+            toast.error("Insufficient connects! You need 2 connects to apply.");
+            return;
+        }
+
         setApplying(true);
         try {
             const token = localStorage.getItem("token");
-            await axios.post(`http://localhost:5000/api/jobs/${jobId}/apply`,
+            const response = await axios.post(`http://localhost:5000/api/jobs/${jobId}/apply`,
                 { proposal },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            toast.success("Application submitted successfully!");
+            toast.success(response.data.message || "Application submitted successfully!");
             setSelectedJob(null);
             setClientProfile(null);
             setProposal("");
             fetchJobs();
             fetchMyApplications();
+            fetchConnects(); // Refresh connects balance
         } catch (err) {
-            toast.error(err.response?.data?.message || "Failed to apply");
+            if (err.response?.data?.needsConnects) {
+                toast.error(err.response.data.message);
+            } else {
+                toast.error(err.response?.data?.message || "Failed to apply");
+            }
         } finally {
             setApplying(false);
         }
@@ -158,7 +193,19 @@ export default function FindWork() {
 
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h3 className="mb-0">Find Work</h3>
-                <span className="badge bg-success fs-6">{jobs.length} jobs available</span>
+                <div className="d-flex align-items-center gap-3">
+                    <div className="d-flex align-items-center gap-2">
+                        <span className="badge bg-info fs-6">⚡ {connects} Connects</span>
+                        <button
+                            className="btn btn-sm btn-success"
+                            onClick={() => navigate('/buy-connects')}
+                            style={{ borderRadius: 20 }}
+                        >
+                            Buy Connects
+                        </button>
+                    </div>
+                    <span className="badge bg-success fs-6">{jobs.length} jobs available</span>
+                </div>
             </div>
 
             {jobs.length === 0 ? (
@@ -226,16 +273,25 @@ export default function FindWork() {
                                                 {job.applications?.length || 0} applications
                                             </small>
                                         </div>
-                                        <button
-                                            className="btn btn-success"
-                                            onClick={() => handleViewJob(job)}
-                                            disabled={myApplications.some(app => app.jobId === job._id)}
-                                        >
-                                            {myApplications.some(app => app.jobId === job._id)
-                                                ? "Applied"
-                                                : "Apply Now"
-                                            }
-                                        </button>
+                                        {myApplications.some(app => app.jobId === job._id) ? (
+                                            <button className="btn btn-secondary" disabled>
+                                                Applied ✓
+                                            </button>
+                                        ) : connects < 2 ? (
+                                            <button
+                                                className="btn btn-warning"
+                                                onClick={() => navigate('/buy-connects')}
+                                            >
+                                                Buy Connects to Bid
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className="btn btn-success"
+                                                onClick={() => handleCheckConnectsAndApply(job)}
+                                            >
+                                                Bid 2 Connects
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -322,6 +378,22 @@ export default function FindWork() {
 
                                 <hr />
 
+                                {/* Connects Warning */}
+                                {connects < 2 && (
+                                    <div className="alert alert-warning" role="alert">
+                                        <div className="d-flex align-items-center">
+                                            <div style={{ fontSize: '2rem', marginRight: '1rem' }}>⚡</div>
+                                            <div>
+                                                <h6 className="alert-heading mb-1">Insufficient Connects</h6>
+                                                <p className="mb-0">
+                                                    You need <strong>2 connects</strong> to apply, but you only have{' '}
+                                                    <strong>{connects} connects</strong>.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Proposal */}
                                 <div className="mb-3">
                                     <label className="form-label"><strong>Your Proposal *</strong></label>
@@ -331,7 +403,13 @@ export default function FindWork() {
                                         placeholder="Write a compelling proposal explaining why you're the best fit for this project..."
                                         value={proposal}
                                         onChange={(e) => setProposal(e.target.value)}
+                                        disabled={connects < 2}
                                     />
+                                    {connects >= 2 && (
+                                        <small className="text-muted">
+                                            💡 Submitting this proposal will deduct 2 connects from your account
+                                        </small>
+                                    )}
                                 </div>
                             </div>
                             <div className="modal-footer">
@@ -359,14 +437,34 @@ export default function FindWork() {
                                 >
                                     Cancel
                                 </button>
-                                <button
-                                    type="button"
-                                    className="btn btn-success"
-                                    onClick={() => handleApply(selectedJob._id)}
-                                    disabled={applying || !proposal.trim()}
-                                >
-                                    {applying ? "Submitting..." : "Submit Proposal"}
-                                </button>
+                                {connects < 2 ? (
+                                    <button
+                                        type="button"
+                                        className="btn btn-warning"
+                                        onClick={() => {
+                                            setSelectedJob(null);
+                                            navigate('/buy-connects');
+                                        }}
+                                    >
+                                        Buy Connects to Apply
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        className="btn btn-success"
+                                        onClick={() => handleApply(selectedJob._id)}
+                                        disabled={applying || !proposal.trim()}
+                                    >
+                                        {applying ? (
+                                            <>
+                                                <span className="spinner-border spinner-border-sm me-2"></span>
+                                                Deducting 2 Connects...
+                                            </>
+                                        ) : (
+                                            "Submit Proposal (2 Connects)"
+                                        )}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
