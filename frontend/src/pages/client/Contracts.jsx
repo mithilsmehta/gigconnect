@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getClientContracts } from '../../api/contractApi';
+import { getClientContracts } from '../../api/contractAPI';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
