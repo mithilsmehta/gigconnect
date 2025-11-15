@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api/payout-accounts',
+  baseURL: 'https://gigconnect-backend-r40h.onrender.com/api/payout-accounts',
 });
 
 // Add auth token
