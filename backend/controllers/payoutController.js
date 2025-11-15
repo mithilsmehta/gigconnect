@@ -4,7 +4,7 @@ import Contract from '../models/Contract.js';
 import PayoutAccount from '../models/PayoutAccount.js';
 import Transaction from '../models/Transaction.js';
 import User from '../models/User.js';
-import { createPayout } from '../services/payoutService.js';
+import { createPayout } from '../services/payoutServices.js';
 import { releaseFunds } from '../services/escrowService.js';
 
 // Process payout to freelancer
