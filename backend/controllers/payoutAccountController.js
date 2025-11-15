@@ -1,5 +1,5 @@
 import PayoutAccount from '../models/PayoutAccount.js';
-import { validateBankAccount } from '../services/payoutService.js';
+import { validateBankAccount } from '../services/payoutServices.js';
 
 // Add payout account (bank or UPI)
 export const addPayoutAccount = async (req, res) => {
