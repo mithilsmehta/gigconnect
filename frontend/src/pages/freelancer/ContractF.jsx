@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getFreelancerContracts, updateContractProgress } from '../../api/contractApi';
+import { getFreelancerContracts, updateContractProgress } from '../../api/contractAPI';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
